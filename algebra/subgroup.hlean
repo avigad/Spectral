@@ -1,14 +1,14 @@
 /-
 Copyright (c) 2015 Egbert Rijke. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Floris van Doorn, Egbert Rijke
+Authors: Floris van Doorn, Egbert Rijke, Jeremy Avigad
 
 Basic concepts of group theory
 -/
 
-import algebra.group_theory
+import algebra.group_theory ..set
 
-open eq algebra is_trunc sigma sigma.ops prod trunc
+open eq algebra is_trunc sigma sigma.ops prod trunc set
 
 namespace group
 
@@ -16,45 +16,41 @@ namespace group
   /-- Recall that a subtype of a type A is the same thing as a family of mere propositions over A. Thus, we define a subgroup of a group G to be a family of mere propositions over (the underlying type of) G, closed under the constants and operations --/
 
   /-- Question: Why is this called subgroup_rel. Because it is a unary relation? --/
-  structure subgroup_rel (G : Group) : Type :=
-    (R : G → Prop)
+  structure is_subgroup (G : Group) (R : set G) : Type :=
     (Rone : R one)
     (Rmul : Π{g h}, R g → R h → R (g * h))
     (Rinv : Π{g}, R g → R (g⁻¹))
 
-  attribute subgroup_rel.R [coercion]
-
   /-- Every group G has at least two subgroups, the trivial subgroup containing only one, and the full subgroup. --/
-  definition trivial_subgroup.{u} (G : Group.{u}) : subgroup_rel.{u u} G :=
+  definition trivial_subgroup.{u} (G : Group.{u}) : is_subgroup.{u u} G '{1} :=
   begin
-    fapply subgroup_rel.mk,
-    { intro g, fapply trunctype.mk, exact (g = one), exact _ },
-    { esimp },
-    { intros g h p q, esimp at *, rewrite p, rewrite q, exact mul_one one},
+    fapply is_subgroup.mk,
+    { esimp, apply mem_insert },
+    { intros g h p q, esimp at *}, --, rewrite p, rewrite q, exact mul_one one},
     { intros g p, esimp at *, rewrite p, exact one_inv }
   end
 
-  definition is_trivial_subgroup (G : Group) (R : subgroup_rel G) : Type :=
+  definition is_trivial_subgroup (G : Group) (R : is_subgroup G) : Type :=
   (Π g : G, R g → g = 1)
 
-  definition full_subgroup.{u} (G : Group.{u}) : subgroup_rel.{u 0} G :=
+  definition full_subgroup.{u} (G : Group.{u}) : is_subgroup.{u 0} G :=
   begin
-    fapply subgroup_rel.mk,
+    fapply is_subgroup.mk,
     { intro g, fapply trunctype.mk, exact unit, exact _ },
     { esimp, constructor },
     { intros g h p q, esimp, constructor },
     { intros g p, esimp, constructor }
   end
 
-  definition is_full_subgroup (G : Group) (R : subgroup_rel G) : Prop :=
+  definition is_full_subgroup (G : Group) (R : is_subgroup G) : Prop :=
   trunctype.mk' -1 (Π g : G, R g)
 
   /-- Every group homomorphism f : G -> H determines a subgroup of H, the image of f, and a subgroup of G, the kernel of f. In the following definition we define the image of f. Since a subgroup is required to be closed under the group operations, showing that the image of f is closed under the group operations is part of the definition of the image of f. --/
 
   /-- TODO. We need to find some reasonable way of dealing with universe levels. The reason why it currently is what it is, is because lean is inflexible with universe leves once tactic mode is started --/
-  definition image_subgroup.{u1 u2} {G : Group.{u1}} {H : Group.{u2}} (f : G →g H) : subgroup_rel.{u2 (max u1 u2)} H :=
+  definition image_subgroup.{u1 u2} {G : Group.{u1}} {H : Group.{u2}} (f : G →g H) : is_subgroup.{u2 (max u1 u2)} H :=
     begin
-      fapply subgroup_rel.mk,
+      fapply is_subgroup.mk,
         -- definition of the subset
       { intro h, apply ttrunc, exact fiber f h},
         -- subset contains 1
@@ -96,8 +92,8 @@ namespace group
         ... = 1       : one_inv
   end
 
-  definition kernel_subgroup [constructor] (φ : G₁ →g G₂) : subgroup_rel G₁ :=
-  ⦃ subgroup_rel,
+  definition kernel_subgroup [constructor] (φ : G₁ →g G₂) : is_subgroup G₁ :=
+  ⦃ is_subgroup,
     R := kernel_pred φ,
     Rone := respect_one φ,
     Rmul := kernel_mul φ,
@@ -116,25 +112,25 @@ namespace group
   definition is_normal [constructor] {G : Group} (R : G → Prop) : Prop :=
   trunctype.mk (Π{g} h, R g → R (h * g * h⁻¹)) _
 
-  structure normal_subgroup_rel (G : Group) extends subgroup_rel G :=
+  structure normal_is_subgroup (G : Group) extends is_subgroup G :=
     (is_normal_subgroup : is_normal R)
 
-  attribute subgroup_rel.R [coercion]
-  abbreviation subgroup_to_rel      [unfold 2] := @subgroup_rel.R
-  abbreviation subgroup_has_one     [unfold 2] := @subgroup_rel.Rone
-  abbreviation subgroup_respect_mul [unfold 2] := @subgroup_rel.Rmul
-  abbreviation subgroup_respect_inv [unfold 2] := @subgroup_rel.Rinv
-  abbreviation is_normal_subgroup   [unfold 2] := @normal_subgroup_rel.is_normal_subgroup
+  attribute is_subgroup.R [coercion]
+  abbreviation subgroup_to_rel      [unfold 2] := @is_subgroup.R
+  abbreviation subgroup_has_one     [unfold 2] := @is_subgroup.Rone
+  abbreviation subgroup_respect_mul [unfold 2] := @is_subgroup.Rmul
+  abbreviation subgroup_respect_inv [unfold 2] := @is_subgroup.Rinv
+  abbreviation is_normal_subgroup   [unfold 2] := @normal_is_subgroup.is_normal_subgroup
 
-  variables {G G' : Group} (H : subgroup_rel G) (N : normal_subgroup_rel G) {g g' h h' k : G}
+  variables {G G' : Group} (H : is_subgroup G) (N : normal_is_subgroup G) {g g' h h' k : G}
             {A B : AbGroup}
 
   theorem is_normal_subgroup' (h : G) (r : N g) : N (h⁻¹ * g * h) :=
   inv_inv h ▸ is_normal_subgroup N h⁻¹ r
 
-  definition normal_subgroup_rel_ab.{u} [constructor] (R : subgroup_rel.{_ u} A)
-    : normal_subgroup_rel.{_ u} A :=
-  ⦃normal_subgroup_rel, R,
+  definition normal_is_subgroup_ab.{u} [constructor] (R : is_subgroup.{_ u} A)
+    : normal_is_subgroup.{_ u} A :=
+  ⦃normal_is_subgroup, R,
     is_normal_subgroup := abstract begin
       intros g h r, xrewrite [mul.comm h g, mul_inv_cancel_right], exact r
       end end⦄
@@ -173,8 +169,8 @@ namespace group
   end
 
   /-- Thus, we extend the kernel subgroup to a normal subgroup --/
-  definition normal_subgroup_kernel [constructor] {G₁ G₂ : Group} (φ : G₁ →g G₂) : normal_subgroup_rel G₁ :=
-  ⦃ normal_subgroup_rel,
+  definition normal_subgroup_kernel [constructor] {G₁ G₂ : Group} (φ : G₁ →g G₂) : normal_is_subgroup G₁ :=
+  ⦃ normal_is_subgroup,
     kernel_subgroup φ,
     is_normal_subgroup := is_normal_subgroup_kernel φ
   ⦄
@@ -206,7 +202,7 @@ namespace group
   theorem subgroup_mul_left_inv (g : sg H) : g⁻¹ * g = 1 :=
   subtype_eq !mul.left_inv
 
-  theorem subgroup_mul_comm {G : AbGroup} {H : subgroup_rel G} (g h : sg H)
+  theorem subgroup_mul_comm {G : AbGroup} {H : is_subgroup G} (g h : sg H)
     : g * h = h * g :=
   subtype_eq !mul.comm
 
@@ -220,11 +216,11 @@ namespace group
   definition subgroup [constructor] : Group :=
   Group.mk _ (group_sg H)
 
-  definition ab_group_sg [constructor] {G : AbGroup} (H : subgroup_rel G)
+  definition ab_group_sg [constructor] {G : AbGroup} (H : is_subgroup G)
     : ab_group (sg H) :=
   ⦃ab_group, group_sg H, mul_comm := subgroup_mul_comm⦄
 
-  definition ab_subgroup [constructor] {G : AbGroup} (H : subgroup_rel G)
+  definition ab_subgroup [constructor] {G : AbGroup} (H : is_subgroup G)
     : AbGroup :=
   AbGroup.mk _ (ab_group_sg H)
 
@@ -232,7 +228,7 @@ namespace group
 
   definition ab_kernel {G H : AbGroup} (f : G →g H) : AbGroup := ab_subgroup (kernel_subgroup f)
 
-  definition incl_of_subgroup [constructor] {G : Group} (H : subgroup_rel G) : subgroup H →g G :=
+  definition incl_of_subgroup [constructor] {G : Group} (H : is_subgroup G) : subgroup H →g G :=
   begin
     fapply homomorphism.mk,
       -- the underlying function
@@ -241,7 +237,7 @@ namespace group
     intro g h, reflexivity
   end
 
-  definition is_embedding_incl_of_subgroup {G : Group} (H : subgroup_rel G) : is_embedding (incl_of_subgroup H) :=
+  definition is_embedding_incl_of_subgroup {G : Group} (H : is_subgroup G) : is_embedding (incl_of_subgroup H) :=
   begin
     fapply function.is_embedding_of_is_injective,
     intro h h', 
@@ -258,8 +254,8 @@ namespace group
     fapply is_embedding_incl_of_subgroup,
   end 
 
-  definition subgroup_rel_of_subgroup {G : Group} (H1 H2 : subgroup_rel G) (hyp : Π (g : G), subgroup_rel.R H1 g → subgroup_rel.R H2 g) : subgroup_rel (subgroup H2) :=
-  subgroup_rel.mk
+  definition is_subgroup_of_subgroup {G : Group} (H1 H2 : is_subgroup G) (hyp : Π (g : G), is_subgroup.R H1 g → is_subgroup.R H2 g) : is_subgroup (subgroup H2) :=
+  is_subgroup.mk
       -- definition of the subset
     (λ h, H1 (incl_of_subgroup H2 h))
       -- contains 1
@@ -321,7 +317,7 @@ namespace group
     exact is_equiv_surjection_ab_image_incl f H
   end
 
-  definition hom_lift {G H : Group} (f : G →g H) (K : subgroup_rel H) (Hyp : Π (g : G), K (f g)) : G →g subgroup K :=
+  definition hom_lift {G H : Group} (f : G →g H) (K : is_subgroup H) (Hyp : Π (g : G), K (f g)) : G →g subgroup K :=
   begin
     fapply homomorphism.mk,
     intro g,

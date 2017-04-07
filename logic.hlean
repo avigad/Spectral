@@ -25,9 +25,9 @@ tua (equiv_of_iff_of_is_prop h)
 
 end
 
-definition false : Prop := trunctype.mk empty _
+definition false : Prop := trunctype.mk (lift empty) _
 
-definition false.elim {A : Type} (h : false) : A := empty.elim h
+definition false.elim {A : Type} (h : false) : A := lift.rec empty.elim h
 
 definition true : Prop := trunctype.mk unit _
 
@@ -53,5 +53,12 @@ prefix `~` := not
 definition or.inl := @or.intro_left
 
 definition or.inr := @or.intro_right
+
+definition or.elim {A B C : Type} [is_prop C] (h₀ : A ∨ B) (h₁ : (A → C)) (h₂ : B → C) : C :=
+begin
+  apply trunc.elim_on h₀,
+  intro h₃, 
+  apply sum.elim h₃ h₁ h₂ 
+end
 
 end logic

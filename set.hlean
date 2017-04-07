@@ -90,7 +90,6 @@ theorem eq_univ_of_forall {s : set X} (H : ∀ x, x ∈ s) : s = univ :=
 ext (take x, iff.intro (assume H', unit.star) (assume H', H x))
 
 
-
 /- set-builder notation -/
 
 -- {x : X | P}
@@ -119,5 +118,50 @@ assume h, or.inr h
 
 theorem eq_or_mem_of_mem_insert {x a : X} {s : set X} : x ∈ insert a s → x = a ∨ x ∈ s :=
 assume h, h
+
+/- singleton -/
+
+open trunc_index
+
+theorem mem_singleton_iff {X : Set} (a b : X) : a ∈ '{b} ↔ a = b :=
+iff.intro
+  (assume ainb, or.elim ainb (λ aeqb, aeqb) (λ f, false.elim f))
+  (assume aeqb, or.inl aeqb)
+
+theorem mem_singleton (a : X) : a ∈ '{a} := !mem_insert
+
+theorem eq_of_mem_singleton {X : Set} {x y : X} (h : x ∈ '{y}) : x = y :=
+or.elim (eq_or_mem_of_mem_insert h)
+  (suppose x = y, this)
+  (suppose x ∈ ∅, absurd this (not_mem_empty x))
+
+theorem mem_singleton_of_eq {x y : X} (H : x = y) : x ∈ '{y} :=
+eq.symm H ▸ mem_singleton y
+
+/-
+theorem insert_eq (x : X) (s : set X) : insert x s = '{x} ∪ s :=
+ext (take y, iff.intro
+  (suppose y ∈ insert x s,
+    or.elim this (suppose y = x, or.inl (or.inl this)) (suppose y ∈ s, or.inr this))
+  (suppose y ∈ '{x} ∪ s,
+    or.elim this
+      (suppose y ∈ '{x}, or.inl (eq_of_mem_singleton this))
+      (suppose y ∈ s, or.inr this)))
+-/
+
+/-
+theorem pair_eq_singleton (a : X) : '{a, a} = '{a} :=
+by rewrite [insert_eq_of_mem !mem_singleton]
+-/
+
+set_option pp.all true
+set_option pp.universes true
+theorem singleton_ne_empty (a : X) : '{a} ≠ ∅ :=
+begin
+  intro H,
+  apply not_mem_empty a,
+  rewrite -H,
+  apply mem_insert
+end
 
 end set
