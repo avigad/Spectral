@@ -29,11 +29,11 @@ definition false : Prop := trunctype.mk (lift empty) _
 
 definition false.elim {A : Type} (h : false) : A := lift.rec empty.elim h
 
-definition true : Prop := trunctype.mk unit _
+definition true : Prop := trunctype.mk (lift unit) _
 
-definition true.intro : true := unit.star
+definition true.intro : true := lift.up unit.star
 
-definition trivial : true := unit.star
+definition trivial : true := lift.up unit.star
 
 definition and (p q : Prop) : Prop := tprod p q
 
@@ -47,8 +47,6 @@ definition and.left {p q : Prop} (h : p ∧ q) : p := prod.pr1 h
 definition and.right {p q : Prop} (h : p ∧ q) : q := prod.pr2 h
 
 definition not (p : Prop) : Prop := trunctype.mk (p → empty) _
-
-prefix `~` := not
 
 definition or.inl := @or.intro_left
 

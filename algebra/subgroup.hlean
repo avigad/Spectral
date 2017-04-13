@@ -15,55 +15,47 @@ namespace group
   /- #Subgroups -/
   /-- Recall that a subtype of a type A is the same thing as a family of mere propositions over A. Thus, we define a subgroup of a group G to be a family of mere propositions over (the underlying type of) G, closed under the constants and operations --/
 
-  /-- Question: Why is this called subgroup_rel. Because it is a unary relation? --/
-  structure is_subgroup (G : Group) (R : set G) : Type :=
-    (Rone : R one)
-    (Rmul : Π{g h}, R g → R h → R (g * h))
-    (Rinv : Π{g}, R g → R (g⁻¹))
+  structure is_subgroup (G : Group) (H : set G) : Type :=
+    (Rone : 1 ∈ H)
+    (Rmul : Π{g h}, g ∈ H → h ∈ H → g * h ∈ H)
+    (Rinv : Π{g}, g ∈ H → g⁻¹ ∈ H)
 
   /-- Every group G has at least two subgroups, the trivial subgroup containing only one, and the full subgroup. --/
-  definition trivial_subgroup.{u} (G : Group.{u}) : is_subgroup.{u u} G '{1} :=
+  definition trivial_subgroup (G : Group) : is_subgroup G '{1} :=
   begin
     fapply is_subgroup.mk,
     { esimp, apply mem_insert },
-    { intros g h p q, esimp at *}, --, rewrite p, rewrite q, exact mul_one one},
-    { intros g p, esimp at *, rewrite p, exact one_inv }
+    { intros g h p q, esimp at *, apply mem_singleton_of_eq, rewrite [eq_of_mem_singleton p, eq_of_mem_singleton q, mul_one]},
+    { intros g p, esimp at *, apply mem_singleton_of_eq, rewrite [eq_of_mem_singleton p, one_inv] }
   end
 
-  definition is_trivial_subgroup (G : Group) (R : is_subgroup G) : Type :=
-  (Π g : G, R g → g = 1)
+set_option pp.universes true
+print trivial_subgroup
 
-  definition full_subgroup.{u} (G : Group.{u}) : is_subgroup.{u 0} G :=
+  definition full_subgroup (G : Group) : is_subgroup G univ :=
   begin
     fapply is_subgroup.mk,
-    { intro g, fapply trunctype.mk, exact unit, exact _ },
-    { esimp, constructor },
-    { intros g h p q, esimp, constructor },
-    { intros g p, esimp, constructor }
+    { apply logic.trivial },
+    { intros, apply logic.trivial },
+    { intros, apply logic.trivial }
   end
-
-  definition is_full_subgroup (G : Group) (R : is_subgroup G) : Prop :=
-  trunctype.mk' -1 (Π g : G, R g)
 
   /-- Every group homomorphism f : G -> H determines a subgroup of H, the image of f, and a subgroup of G, the kernel of f. In the following definition we define the image of f. Since a subgroup is required to be closed under the group operations, showing that the image of f is closed under the group operations is part of the definition of the image of f. --/
 
-  /-- TODO. We need to find some reasonable way of dealing with universe levels. The reason why it currently is what it is, is because lean is inflexible with universe leves once tactic mode is started --/
-  definition image_subgroup.{u1 u2} {G : Group.{u1}} {H : Group.{u2}} (f : G →g H) : is_subgroup.{u2 (max u1 u2)} H :=
+  definition image_subgroup {G : Group} {H : Group} (f : G →g H) : 
+    is_subgroup H (image f) :=
     begin
       fapply is_subgroup.mk,
-        -- definition of the subset
-      { intro h, apply ttrunc, exact fiber f h},
         -- subset contains 1
-      { apply trunc.tr, fapply fiber.mk, exact 1, apply respect_one},
+      { fapply image.mk, exact 1, apply respect_one},
         -- subset is closed under multiplication
       { intro h h', intro u v,
-        induction u with p, induction v with q,
-        induction p with x p, induction q with y q,
+        induction u with x p, induction v with y q,
         induction p, induction q,
-        apply tr, apply fiber.mk (x * y), apply respect_mul},
+        apply image.mk (x * y), apply respect_mul},
         -- subset is closed under inverses
-      { intro g, intro t, induction t, induction a with x p, induction p,
-        apply tr, apply fiber.mk x⁻¹, apply respect_inv }
+      { intro g, intro t, induction t with x p, induction p,
+        apply image.mk x⁻¹, apply respect_inv }
     end
 
   section kernels
@@ -92,9 +84,8 @@ namespace group
         ... = 1       : one_inv
   end
 
-  definition kernel_subgroup [constructor] (φ : G₁ →g G₂) : is_subgroup G₁ :=
+  definition kernel_subgroup [constructor] (φ : G₁ →g G₂) : is_subgroup G₁ (kernel_pred φ) :=
   ⦃ is_subgroup,
-    R := kernel_pred φ,
     Rone := respect_one φ,
     Rmul := kernel_mul φ,
     Rinv := kernel_inv φ

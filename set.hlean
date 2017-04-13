@@ -18,8 +18,9 @@ definition mem (x : X) (a : set X) := a x
 infix ∈ := mem
 notation a ∉ b := ¬ mem a b
 
-theorem ext {a b : set X} (H : ∀x, x ∈ a ↔ x ∈ b) : a = b :=
+/-theorem ext {a b : set X} (H : ∀x, x ∈ a ↔ x ∈ b) : a = b :=
 eq_of_homotopy (take x, propext (H x))
+-/
 
 definition subset (a b : set X) : Prop := Prop.mk (∀⦃x⦄, x ∈ a → x ∈ b) _
 infix ⊆ := subset
@@ -32,12 +33,16 @@ theorem subset.refl (a : set X) : a ⊆ a := take x, assume H, H
 theorem subset.trans {a b c : set X} (subab : a ⊆ b) (subbc : b ⊆ c) : a ⊆ c :=
 take x, assume ax, subbc (subab ax)
 
+/-
 theorem subset.antisymm {a b : set X} (h₁ : a ⊆ b) (h₂ : b ⊆ a) : a = b :=
 ext (λ x, iff.intro (λ ina, h₁ ina) (λ inb, h₂ inb))
+-/
 
 -- an alterantive name
+/-
 theorem eq_of_subset_of_subset {a b : set X} (h₁ : a ⊆ b) (h₂ : b ⊆ a) : a = b :=
 subset.antisymm h₁ h₂
+-/
 
 theorem mem_of_subset_of_mem {s₁ s₂ : set X} {a : X} : s₁ ⊆ s₂ → a ∈ s₁ → a ∈ s₂ :=
 assume h₁ h₂, h₁ _ h₂
@@ -45,29 +50,35 @@ assume h₁ h₂, h₁ _ h₂
 /- empty set -/
 
 definition empty : set X := λx, false
-notation `∅` := empty
+notation `∅` := set.empty
 
 theorem not_mem_empty (x : X) : ¬ (x ∈ ∅) :=
-assume H : x ∈ ∅, H
+assume H : x ∈ ∅, false.elim H
 
 theorem mem_empty_eq (x : X) : x ∈ ∅ = false := rfl
 
+/-
 theorem eq_empty_of_forall_not_mem {s : set X} (H : ∀ x, x ∉ s) : s = ∅ :=
 ext (take x, iff.intro
   (assume xs, absurd xs (H x))
   (assume xe, absurd xe (not_mem_empty x)))
+-/
+
+set_option formatter.hide_full_terms false
 
 theorem ne_empty_of_mem {s : set X} {x : X} (H : x ∈ s) : s ≠ ∅ :=
   begin intro Hs, rewrite Hs at H, apply not_mem_empty x H end
 
-theorem empty_subset (s : set X) : ∅ ⊆ s :=
-take x, assume H, empty.elim H
 
-theorem eq_empty_of_subset_empty {s : set X} (H : s ⊆ ∅) : s = ∅ :=
+theorem empty_subset (s : set X) : ∅ ⊆ s :=
+take x, assume H, false.elim H
+
+/-theorem eq_empty_of_subset_empty {s : set X} (H : s ⊆ ∅) : s = ∅ :=
 subset.antisymm H (empty_subset s)
 
 theorem subset_empty_iff (s : set X) : s ⊆ ∅ ↔ s = ∅ :=
 iff.intro eq_empty_of_subset_empty (take xeq, by rewrite xeq; apply subset.refl ∅)
+-/
 
 /- universal set -/
 
@@ -81,14 +92,17 @@ theorem empty_ne_univ [h : inhabited X] : (empty : set X) ≠ univ :=
 assume H : empty = univ,
 absurd (mem_univ (inhabited.value h)) (eq.rec_on H (not_mem_empty (arbitrary X)))
 
-theorem subset_univ (s : set X) : s ⊆ univ := λ x H, unit.star
+theorem subset_univ (s : set X) : s ⊆ univ := λ x H, trivial
 
+/-
 theorem eq_univ_of_univ_subset {s : set X} (H : univ ⊆ s) : s = univ :=
 eq_of_subset_of_subset (subset_univ s) H
+-/
 
+/-
 theorem eq_univ_of_forall {s : set X} (H : ∀ x, x ∈ s) : s = univ :=
-ext (take x, iff.intro (assume H', unit.star) (assume H', H x))
-
+ext (take x, iff.intro (assume H', trivial) (assume H', H x))
+-/
 
 /- set-builder notation -/
 
@@ -123,14 +137,16 @@ assume h, h
 
 open trunc_index
 
-theorem mem_singleton_iff {X : Set} (a b : X) : a ∈ '{b} ↔ a = b :=
+definition singleton (x : X) [is_set X] : set X := { y : X | Prop.mk (y = x) _ }
+
+theorem mem_singleton_iff {X : Type} [is_set X] (a b : X) : a ∈ '{b} ↔ a = b :=
 iff.intro
   (assume ainb, or.elim ainb (λ aeqb, aeqb) (λ f, false.elim f))
   (assume aeqb, or.inl aeqb)
 
 theorem mem_singleton (a : X) : a ∈ '{a} := !mem_insert
 
-theorem eq_of_mem_singleton {X : Set} {x y : X} (h : x ∈ '{y}) : x = y :=
+theorem eq_of_mem_singleton {X : Type} [is_set X] {x y : X} (h : x ∈ '{y}) : x = y :=
 or.elim (eq_or_mem_of_mem_insert h)
   (suppose x = y, this)
   (suppose x ∈ ∅, absurd this (not_mem_empty x))
@@ -153,9 +169,7 @@ ext (take y, iff.intro
 theorem pair_eq_singleton (a : X) : '{a, a} = '{a} :=
 by rewrite [insert_eq_of_mem !mem_singleton]
 -/
-
-set_option pp.all true
-set_option pp.universes true
+/-
 theorem singleton_ne_empty (a : X) : '{a} ≠ ∅ :=
 begin
   intro H,
@@ -163,5 +177,6 @@ begin
   rewrite -H,
   apply mem_insert
 end
+-/
 
 end set
